@@ -18,8 +18,6 @@ from database.connections_mdb import active_connection, all_connections, delete_
 from database.gfilters_mdb import find_gfilter, get_gfilters, del_allg
 from urllib.parse import quote_plus
 from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
-from plugins.Extra.save_restrict_content.save import run_save, get_link
-from plugins.Extra.save_restrict_content.join import join
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
@@ -79,35 +77,6 @@ async def pm_text(bot, message):
     content = message.text
     user = message.from_user.first_name
     user_id = message.from_user.id
-    save = await db.get_save(user_id)
-    if 't.me/+' in content and SAVE_RESTRICTED_MODE == True:
-        await join(message, content)
-        return 
-    if save == True and SAVE_RESTRICTED_MODE == True:
-        try:
-            link = get_link(content)
-            if not link:
-                if content.startswith("/") or content.startswith("#"): return  # ignore commands and hashtags
-                if PM_SEARCH == True:
-                    ai_search = True
-                    reply_msg = await bot.send_message(message.from_user.id, f"<b><i>Searching For {content} 🔍</i></b>", reply_to_message_id=message.id)
-                    await auto_filter(bot, content, message, reply_msg, ai_search)
-                else:
-                    await message.reply_text(text=f"<b>ʜᴇʏ {user} 😍 ,\n\nʏᴏᴜ ᴄᴀɴ'ᴛ ɢᴇᴛ ᴍᴏᴠɪᴇs ꜰʀᴏᴍ ʜᴇʀᴇ. ʀᴇǫᴜᴇsᴛ ɪᴛ ɪɴ ᴏᴜʀ <a href=https://t.me/vj_bots>ᴍᴏᴠɪᴇ ɢʀᴏᴜᴘ</a> ᴏʀ ᴄʟɪᴄᴋ ʀᴇǫᴜᴇsᴛ ʜᴇʀᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ 👇</b>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📝 ʀᴇǫᴜᴇsᴛ ʜᴇʀᴇ ", url=f"https://t.me/vj_bots")]]))
-                    await bot.send_message(chat_id=LOG_CHANNEL, text=f"<b>#𝐏𝐌_𝐌𝐒𝐆\n\nNᴀᴍᴇ : {user}\n\nID : {user_id}\n\nMᴇssᴀɢᴇ : {content}</b>")
-        except TypeError:
-            return 
-        _range = await bot.ask(user_id, "**sᴇɴᴅ ᴍᴇ ᴛʜᴇ ɴᴜᴍʙᴇʀ ᴏғ ғɪʟᴇs/ʀᴀɴɢᴇ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ sᴀᴠᴇ ғʀᴏᴍ ᴛʜᴇ ɢɪᴠᴇɴ ᴍᴇssᴀɢᴇ**")
-        try:
-            value = int(_range.text)
-            if value > 100:
-                await _range.reply("**ʏᴏᴜ ᴄᴀɴ ᴏɴʟʏ ɢᴇᴛ ᴜᴘᴛᴏ 100 ғɪʟᴇs ɪɴ ᴀ sɪɴɢʟᴇ ʙᴀᴛᴄʜ.**")
-                return
-        except ValueError:
-            await _range.reply("**ʀᴀɴɢᴇ ᴍᴜsᴛ ʙᴇ ᴀɴ ɪɴᴛᴇɢᴇʀ**")
-        await run_save(bot, user_id, content, value) 
-        await db.set_save(user_id, save=False)
-        return 
     if content.startswith("/") or content.startswith("#"): return  # ignore commands and hashtags
     if PM_SEARCH == True:
         ai_search = True
@@ -1992,7 +1961,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 InlineKeyboardButton('〄 Hᴇʟᴘ', callback_data='help'),
                 InlineKeyboardButton('⍟ Aʙᴏᴜᴛ', callback_data='about')
             ],[
-                InlineKeyboardButton('🔻 ɢᴇᴛ ғʀᴇᴇ/ᴘᴀɪᴅ sᴜʙsᴄʀɪᴘᴛɪᴏɴ 🔻', callback_data='subscription')
+                InlineKeyboardButton('💳 Gᴇᴛ Fʀᴇᴇ Oʀ Pᴀɪᴅ Sᴜʙsᴄʀɪᴘᴛɪᴏɴ 💳', callback_data='subscription')
             ],[
                 InlineKeyboardButton('✇ Jᴏɪɴ Uᴘᴅᴀᴛᴇs Cʜᴀɴɴᴇʟ ✇', url=CHNL_LNK)
             ]]
@@ -2008,6 +1977,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             ],[
                 InlineKeyboardButton('✇ Jᴏɪɴ Uᴘᴅᴀᴛᴇs Cʜᴀɴɴᴇʟ ✇', url=CHNL_LNK)
             ]]
+        if CLONE_MODE == True:
+            buttons.append([InlineKeyboardButton('🤖 Cʀᴇᴀᴛᴇ Yᴏᴜʀ Oᴡɴ Cʟᴏɴᴇ Bᴏᴛ 🤖', callback_data='clone')])
         reply_markup = InlineKeyboardMarkup(buttons)
         await client.edit_message_media(
             query.message.chat.id, 
@@ -2021,6 +1992,22 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
         await query.answer(MSG_ALRT)
 
+    elif query.data == "clone":
+        buttons = [[
+            InlineKeyboardButton('⟸ Bᴀᴄᴋ', callback_data='start')
+        ]]
+        await client.edit_message_media(
+            query.message.chat.id, 
+            query.message.id, 
+            InputMediaPhoto(random.choice(PICS))
+        )
+        reply_markup = InlineKeyboardMarkup(buttons)
+        await query.message.edit_text(
+            text=script.CLONE_TXT,
+            reply_markup=reply_markup,
+            parse_mode=enums.ParseMode.HTML
+        )
+        
     elif query.data == "filters":
         buttons = [[
             InlineKeyboardButton('Mᴀɴᴜᴀʟ FIʟᴛᴇʀ', callback_data='manuelfilter'),
